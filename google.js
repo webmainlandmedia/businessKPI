@@ -1,11 +1,9 @@
 const express = require("express");
-const {google} =require("googleapis");
+const { google } = require("googleapis");
 const mysql = require("mysql");
-const csvWriter = require("csv-write-stream"); 
 const fs = require("fs");
 
-
-const app =express();
+const app = express();
 
 const connection = mysql.createConnection({
   host: '119.3.241.33',
@@ -16,121 +14,169 @@ const connection = mysql.createConnection({
   charset: 'utf8mb4',
 });
 
-connection.connect((err) => {
-  if (err) {
-    console.error('Error connecting to MySQL:', err);
-    return;
-  }
-  console.log('Connected to MySQL');
+const today = new Date().toISOString().split('T')[0];
 
-  const today = new Date().toISOString().split('T')[0];
+//3.新增注册用户数（当日）
+// //猫咪头
+const query3_1 = `
+  SELECT COUNT(*)
+  FROM \`UserForm\`
+  WHERE CAST(Submission_Date AS DATE) = '${today}'
+    AND Assistant_name = '猫咪头'`;
 
-  //3.新增注册用户数（当日）
-  // //猫咪头
-  const query1 = `
-    SELECT COUNT(*)
-    FROM \`UserForm\`
-    WHERE CAST(Submission_Date AS DATE) = '${today}'
-      AND Assistant_name = '猫咪头'`;
-  // //大黄
-  const query2 = `
-    SELECT COUNT(*)
-    FROM \`UserForm\`
-    WHERE CAST(Submission_Date AS DATE) = '${today}'
-      AND Assistant_name = '黄金猎犬，大黄'`;
+// //大黄
+const query3_2 = `
+  SELECT COUNT(*)
+  FROM \`UserForm\`
+  WHERE CAST(Submission_Date AS DATE) = '${today}'
+    AND Assistant_name = '黄金猎犬，大黄'`;
 
-  //12.未匹配小助手用户数（当日）
-  const query3 = `
+//12.未匹配小助手用户数（当日）
+  const query12 = `
     SELECT COUNT(*)
     FROM \`customers\`
     WHERE Assistant_name IS NULL
       AND CAST(Submission_Date AS DATE) = '${today}'`;
 
-  //13.当天新增房源数（当日）
-  const query4 = `
+//13.当天新增房源数（当日）
+  const query13 = `
     SELECT COUNT(*)
     FROM \`new_houses\`
     WHERE CAST(data_time AS DATE) = '${today}'`;
 
-  const queries = [query1, query2, query3, query4];
-
-  const writer = csvWriter({ sendHeaders: false });
-  const writableStream = fs.createWriteStream("test.csv", { flags: 'a' });
-
-  // Pipe the CSV writer to the file
-  writer.pipe(writableStream);
-
-  // Execute queries sequentially
-  executeQueriesSequentially(0);
-
-  function executeQueriesSequentially(index) {
-    if (index < queries.length) {
-      const query = queries[index];
-
-      connection.query(query, (err, results) => {
-        if (err) {
-          console.error('Error querying MySQL:', err);
-          connection.end();
-          return;
-        }
-
-        if (results.length === 0) {
-          console.log(`No results found for query ${index + 1}.`);
-        } else {
-          // Write results to CSV
-          results.forEach(result => writer.write(result));
-        }
-
-        // Move on to the next query
-        executeQueriesSequentially(index + 1);
+app.get("/", async (req, res) => {
+  try {
+    const getCount = async (query) => {
+      return new Promise((resolve, reject) => {
+        connection.query(query, (err, results) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(results[0]['COUNT(*)']);
+          }
+        });
       });
-    } else {
-      // All queries executed, end the CSV writing process
-      writer.end();
+    };
 
-      writableStream.on("finish", () => {
-        console.log("CSV file created successfully");
-        connection.end();
-      });
-    }
-  }
-});
 
-app.get("/", async(req, res) => {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: "credentials.json",
-    scopes: "https://www.googleapis.com/auth/spreadsheets",
-  });
 
-    // Create client instance for auth
+    const count3_1 = await getCount(query3_1);
+    const count3_2 = await getCount(query3_2);
+    const count6 = 0;
+    const count7 = 0;
+    const count12 = await getCount(query12);
+    const count13 = await getCount(query13);
+
+    const auth = new google.auth.GoogleAuth({
+      keyFile: "credentials.json",
+      scopes: "https://www.googleapis.com/auth/spreadsheets",
+    });
+
     const client = await auth.getClient();
 
     const googleSheets = google.sheets({ version: "v4", auth: client });
 
     const spreadsheetId = "15secBfkqHiqPD1s5xqbOeQ0u1S0-WKJXcH_wF36XOVg";
 
-    const metaData = await googleSheets.spreadsheets.get({
+    await googleSheets.spreadsheets.values.append({
       auth,
       spreadsheetId,
-    });
-
-    const getRows = await googleSheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId,
-      range: "KPI",
+      range: "KPI!A2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[today]],
+      },
     });
 
     await googleSheets.spreadsheets.values.append({
       auth,
       spreadsheetId,
-      range: "KPI!A",
+      range: "KPI!B2",
       valueInputOption: "USER_ENTERED",
       resource: {
-        values: [[request, name]],
+        values: [["大黄"]],
       },
     });
-  
 
-})
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!B3",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [["猫咪头"]],
+      },
+    });
 
-app.listen(3000, (req, res) => console.log("running on 3000"));
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!E2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count3_1]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!E3",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count3_2]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!H2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count6]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!I2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count7]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!N2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count12]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!O2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count13]],
+      },
+    });
+
+    
+
+
+
+    res.send("Data has been appended to the Google Sheet");
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+app.listen(3000, () => console.log("running on 3000"));
