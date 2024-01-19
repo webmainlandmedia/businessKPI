@@ -31,6 +31,18 @@ const query3_2 = `
   WHERE CAST(Submission_Date AS DATE) = '${today}'
     AND Assistant_name = '黄金猎犬，大黄'`;
 
+//8.看房率（看房数量的客户/全部客户）
+//9.未看房率（没有看房记录的客户/全部有效客户）
+const query8_1 = `
+SELECT COUNT(*) FROM \`UserForm\` WHERE rent_status = 'no'`;
+
+const query8_2 = `
+SELECT COUNT(*) FROM \`UserForm\` WHERE rent_status = '看房客户'`;
+
+//10.外部匹配房源处理率（处理的房源/全部外部匹配房源）
+const query9_1 = `
+SELECT COUNT(*) FROM \`UserForm\` WHERE rent_status = 'no'AND need_help_with = '租房'`;
+
 //12.未匹配小助手用户数（当日）
   const query12 = `
     SELECT COUNT(*)
@@ -38,11 +50,11 @@ const query3_2 = `
     WHERE Assistant_name IS NULL
       AND CAST(Submission_Date AS DATE) = '${today}'`;
 
-//13.当天新增房源数（当日）
+//13.当天内部新增房源数（当日）
   const query13 = `
     SELECT COUNT(*)
-    FROM \`new_houses\`
-    WHERE CAST(data_time AS DATE) = '${today}'`;
+    FROM \`landlord\`
+    WHERE CAST(datatime AS DATE) = ${today} `;
 
 app.get("/", async (req, res) => {
   try {
@@ -64,6 +76,10 @@ app.get("/", async (req, res) => {
     const count3_2 = await getCount(query3_2);
     const count6 = 0;
     const count7 = 0;
+    const count8_1 = await getCount(query8_1);
+    const count8_2 = await getCount(query8_2);
+    const count8 = count8_2/count8_1;
+    const count9 = 1-count8;
     const count12 = await getCount(query12);
     const count13 = await getCount(query13);
 
@@ -145,6 +161,26 @@ app.get("/", async (req, res) => {
       valueInputOption: "USER_ENTERED",
       resource: {
         values: [[count7]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!J2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count8]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!K2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count9]],
       },
     });
 

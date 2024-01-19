@@ -1,6 +1,6 @@
 const express = require("express");
 const mysql = require("mysql");
-const csvWriter = require("csv-write-stream"); 
+const csvWriter = require("csv-write-stream");
 const fs = require("fs");
 
 const app = express();
@@ -14,7 +14,6 @@ const connection = mysql.createConnection({
   charset: 'utf8mb4',
 });
 
-
 // Establish MySQL connection
 connection.connect((err) => {
   if (err) {
@@ -25,75 +24,96 @@ connection.connect((err) => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  //3.新增注册用户数（当日）
-  // //猫咪头
-  const query1 = `
-    SELECT COUNT(*)
-    FROM \`UserForm\`
-    WHERE CAST(Submission_Date AS DATE) = '${today}'
-      AND Assistant_name = '猫咪头'`;
-  // //大黄
-  const query2 = `
-    SELECT COUNT(*)
-    FROM \`UserForm\`
-    WHERE CAST(Submission_Date AS DATE) = '${today}'
-      AND Assistant_name = '黄金猎犬，大黄'`;
-
-  //12.未匹配小助手用户数（当日）
-  const query3 = `
-    SELECT COUNT(*)
+  // Query to get UserId values
+  const query = `
+    SELECT UserId
     FROM \`customers\`
-    WHERE Assistant_name IS NULL
-      AND CAST(Submission_Date AS DATE) = '${today}'`;
+    WHERE CAST(datatime AS DATE) = '${today}'
+      AND Assistant_name = '猫咪头'`;
 
-  //13.当天新增房源数（当日）
-  const query4 = `
-    SELECT COUNT(*)
-    FROM \`new_houses\`
-    WHERE CAST(data_time AS DATE) = '${today}'`;
-
-  const queries = [query1, query2, query3, query4];
-
-  const writer = csvWriter({ sendHeaders: false });
-  const writableStream = fs.createWriteStream("test.csv", { flags: 'a' });
-
-  // Pipe the CSV writer to the file
-  writer.pipe(writableStream);
-
-  // Execute queries sequentially
-  executeQueriesSequentially(0);
-
-  function executeQueriesSequentially(index) {
-    if (index < queries.length) {
-      const query = queries[index];
-
-      connection.query(query, (err, results) => {
-        if (err) {
-          console.error('Error querying MySQL:', err);
-          connection.end();
-          return;
-        }
-
-        if (results.length === 0) {
-          console.log(`No results found for query ${index + 1}.`);
-        } else {
-          // Write results to CSV
-          results.forEach(result => writer.write(result));
-        }
-
-        // Move on to the next query
-        executeQueriesSequentially(index + 1);
-      });
-    } else {
-      // All queries executed, end the CSV writing process
-      writer.end();
-
-      writableStream.on("finish", () => {
-        console.log("CSV file created successfully");
-        connection.end();
-      });
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error('Error querying MySQL:', err);
+      connection.end();
+      return;
     }
-  }
+
+    if (results.length === 0) {
+      console.log('No results found for the query.');
+      connection.end();
+      return;
+    }
+
+    // Populate the userIdArray with UserId values
+    const userIdArray = results.map(result => result.UserId);
+
+    // Check and update the vancouver table
+    let sum = 0;
+
+    // Use a recursive function to handle asynchronous queries
+    function processUserId(index) {
+      if (index < userIdArray.length) {
+        const userId = userIdArray[index];
+
+        const checkQuery = `
+          SELECT SUM(count) AS total_count
+          FROM (
+            SELECT COUNT(*) AS count
+            FROM \`old_richmond_match\`
+            WHERE UserId = '${userId}'
+            UNION
+            SELECT COUNT(*) AS count
+            FROM \`old_vancouver_match\`
+            WHERE UserId = '${userId}'
+            UNION
+            SELECT COUNT(*) AS count
+            FROM \`old_coquitlam_match\`
+            WHERE UserId = '${userId}'
+            UNION
+            SELECT COUNT(*) AS count
+            FROM \`old_burnaby_match\`
+            WHERE UserId = '${userId}'
+            UNION
+            SELECT COUNT(*) AS count
+            FROM \`old_other_match\`
+            WHERE UserId = '${userId}'
+          ) AS subquery;`;
+
+        connection.query(checkQuery, (err, checkResults) => {
+          if (err) {
+            console.error('Error checking old_vancouver_match table:', err);
+            connection.end();
+            return;
+          }
+
+          const total_count = checkResults[0].total_count;
+
+          if (total_count > 0) {
+            sum += 1;
+          }
+
+          // Continue processing the next UserId
+          processUserId(index + 1);
+        });
+      } else {
+        // All queries executed, now write sum to CSV
+        const writer = csvWriter({ sendHeaders: false });
+        const writableStream = fs.createWriteStream("test.csv", { flags: 'a' });
+
+        writer.pipe(writableStream);
+        writer.write({ sum }); // Write the sum value
+        writer.end();
+
+        writableStream.on("finish", () => {
+          console.log("CSV file created successfully");
+          connection.end();
+        });
+      }
+    }
+
+    // Start processing UserId values
+    processUserId(0);
+  });
 });
 
 app.listen(3000, () => {

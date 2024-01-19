@@ -26,13 +26,28 @@ connection.connect((err) => {
 
   //1.无内部匹配房源的客户数（当日）
     //猫咪头
-    // const queries = [
-    //   `
-    //   SELECT UserId
-    //   FROM \`customers\`
-    //   WHERE CAST(datatime AS DATE) = '${today}'
-    //     AND Assistant_name = '猫咪头'`,
-    // ];
+    const queries = [
+      `
+      SELECT UserId
+      FROM \`customers\`
+      WHERE CAST(datatime AS DATE) = '${today}'
+        AND Assistant_name = '猫咪头'`,
+    ];
+
+    let sum = 0;
+    for (let i = 0; i < queries.length; i++) {
+      while(true){
+        const num = [
+          `
+          SELECT COUNT(*)
+          FROM \`old_vancouver_match\`
+          WHERE UserId = '${queries[i]}'`,
+        ];
+        if (num > 0) {
+          sum += 1;
+        }
+      }
+    }
   
 
 
@@ -61,7 +76,9 @@ connection.connect((err) => {
 
   // //7.当日新增看房数
 
-  // //8.看房率（看房数量的客户/全部客户）
+  //8.看房率（看房数量的客户/全部客户）
+  
+
 
   // //9.未看房率（没有看房记录的客户/全部有效客户）
   
