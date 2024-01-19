@@ -34,21 +34,6 @@ connection.connect((err) => {
         AND Assistant_name = '猫咪头'`,
     ];
 
-    let sum = 0;
-    for (let i = 0; i < queries.length; i++) {
-      while(true){
-        const num = [
-          `
-          SELECT COUNT(*)
-          FROM \`old_vancouver_match\`
-          WHERE UserId = '${queries[i]}'`,
-        ];
-        if (num > 0) {
-          sum += 1;
-        }
-      }
-    }
-  
 
 
   //2.无外部匹配房源的客户数（当日）
