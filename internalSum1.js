@@ -23,23 +23,19 @@ function processUserId(index, userIdArray) {
         SELECT SUM(count) AS total_count
         FROM (
           SELECT COUNT(*) AS count
-          FROM \`old_richmond_match\`
+          FROM \`old_internal_richmond_match\`
           WHERE UserId = '${userId}'
           UNION
           SELECT COUNT(*) AS count
-          FROM \`old_vancouver_match\`
+          FROM \`old_internal_vancouver_match\`
           WHERE UserId = '${userId}'
           UNION
           SELECT COUNT(*) AS count
-          FROM \`old_coquitlam_match\`
+          FROM \`old_internal_coquitlam_match\`
           WHERE UserId = '${userId}'
           UNION
           SELECT COUNT(*) AS count
-          FROM \`old_burnaby_match\`
-          WHERE UserId = '${userId}'
-          UNION
-          SELECT COUNT(*) AS count
-          FROM \`old_other_match\`
+          FROM \`old_internal_burnaby_match\`
           WHERE UserId = '${userId}'
         ) AS subquery;`;
 

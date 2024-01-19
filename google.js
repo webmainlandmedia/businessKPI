@@ -4,6 +4,8 @@ const mysql = require("mysql");
 const fs = require("fs");
 const calculateFinalSum1 = require('./externalSum1.js');
 const calculateFinalSum2 = require('./externalSum2.js');
+const calculateFinalSum3 = require('./internalSum1.js');
+const calculateFinalSum4 = require('./internalSum2.js');
 
 const app = express();
 
@@ -20,6 +22,29 @@ const today = new Date().toISOString().split('T')[0];
 
 //1.无内部匹配房源的客户数（当日）
 //猫咪头
+let sum1_1; // Declare a variable to store the final sum
+calculateFinalSum3()
+  .then((finalSum) => {
+    sum1_1 = finalSum; // Assign the resolved value to the 'sum' variable
+    return finalSum;
+  })
+  .catch((error) => {
+    console.error('Error calculating final sum:', error);
+  });
+
+  //大黄
+let sum1_2; // Declare a variable to store the final sum
+calculateFinalSum4()
+  .then((finalSum) => {
+    sum1_2 = finalSum; // Assign the resolved value to the 'sum' variable
+    return finalSum;
+  })
+  .catch((error) => {
+    console.error('Error calculating final sum:', error);
+  });
+
+
+
 
 //2.无外部匹配房源的客户数（当日）
 //猫咪头
@@ -114,10 +139,14 @@ app.get("/", async (req, res) => {
     };
 
 
+    const count1_1 = await getCount(query2_1)-sum1_1;
+    const count1_2 = await getCount(query2_2)-sum1_2;
     const count2_1 = await getCount(query2_1)-sum2_1;
     const count2_2 = await getCount(query2_2) -sum2_2;
     const count3_1 = await getCount(query3_1);
     const count3_2 = await getCount(query3_2);
+    const count4_1 = 1 - count1_1/await getCount(query2_1);
+    const count4_2 = 1 - count1_2/await getCount(query2_2);
     const count5_1 = 1 - count2_1/await getCount(query2_1);
     const count5_2 = 1 - count2_2/await getCount(query2_2);
     const count6 = 0;
@@ -173,6 +202,26 @@ app.get("/", async (req, res) => {
     await googleSheets.spreadsheets.values.append({
       auth,
       spreadsheetId,
+      range: "KPI!C2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count1_1]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!C3",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count1_2]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
       range: "KPI!D2",
       valueInputOption: "USER_ENTERED",
       resource: {
@@ -208,6 +257,26 @@ app.get("/", async (req, res) => {
       valueInputOption: "USER_ENTERED",
       resource: {
         values: [[count3_2]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!F2",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count4_1]],
+      },
+    });
+
+    await googleSheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId,
+      range: "KPI!F3",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[count4_2]],
       },
     });
 
