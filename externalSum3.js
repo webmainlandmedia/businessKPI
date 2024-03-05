@@ -74,7 +74,6 @@ function calculateFinalSum() {
         reject(err);
         return;
       }
-    
 
       const today = '2024-03-05';
 
@@ -82,7 +81,7 @@ function calculateFinalSum() {
         SELECT UserId
         FROM \`customers\`
         WHERE CAST(datatime AS DATE) = '${today}'
-          AND Assistant_name = '猫咪头'`;
+          AND Assistant_name = '加拿大鹅妈妈'`;
 
       connection.query(query, (err, results) => {
         if (err) {
@@ -93,7 +92,7 @@ function calculateFinalSum() {
         }
 
         if (results.length === 0) {
-          console.log('No results found for the externalSum1.');
+          console.log('No results found for the externalSum3.');
           connection.end();
           resolve(0);
           return;

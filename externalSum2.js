@@ -75,7 +75,7 @@ function calculateFinalSum() {
         return;
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = '2024-03-05';
 
       const query = `
         SELECT UserId
@@ -92,7 +92,7 @@ function calculateFinalSum() {
         }
 
         if (results.length === 0) {
-          console.log('No results found for the query.');
+          console.log('No results found for the externalSum2.');
           connection.end();
           resolve(0);
           return;
