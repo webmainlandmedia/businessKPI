@@ -23,7 +23,7 @@ async function main() {
     console.log('Connected to MySQL as id ' + connection.threadId);
 
     // 执行查询
-    connection.query('SELECT * FROM kpi ORDER BY `日期` desc', (err, results, fields) => {
+    connection.query('SELECT * FROM kpi ORDER BY `日期` DESC limit 100', (err, results, fields) => {
       connection.release(); // 释放连接
 
       if (err) {
@@ -36,17 +36,33 @@ async function main() {
       // 将查询结果转换为二维数组
       const rows = [];
       rows.push(fields.map(field => field.name)); // 添加表头
-      results.forEach(row => rows.push(Object.values(row))); // 添加数据
 
-      // 限制更新的行数为最多 100 行
-      const rowsToUpdate = rows.slice(0, 100);
-
+      // 添加数据，并对指定列进行处理
+      results.forEach(row => {
+        const newRow = [];
+        Object.entries(row).forEach(([key, value], index) => {
+          if (index === 0) { // 如果是日期列
+            // 将日期字符串转换为日期对象
+            const dateObj = new Date(value);
+            // 提取年月日部分并格式化为字符串
+            const formattedDate = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+            newRow.push(formattedDate); // 将格式化后的日期添加到新行中
+          } else if ((index >= 10 && index <= 15) || (index >= 19 && index <= 30)) {
+            // 对指定列的数据进行处理
+            value = (value * 100).toFixed(2) + '%'; // 乘以 100 并保留两位小数，然后添加百分号
+            newRow.push(value);
+          } else {
+            newRow.push(value); // 其他列直接添加到新行中
+          }
+        });
+        rows.push(newRow);
+      });
       // 调用 Google Sheets API 写入数据到 Google Sheets
       googleSheets.spreadsheets.values.update({
         spreadsheetId: spreadsheetId,
         range: 'KPI!A1:AG',// 你要写入的工作表名称或范围
         valueInputOption: 'RAW',
-        resource: { values: rowsToUpdate }
+        resource: { values: rows }
       }, (err, response) => {
         if (err) {
           console.error('Error writing data to Google Sheets: ' + err);
