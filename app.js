@@ -3,7 +3,7 @@ const { google } = require("googleapis");
 
 async function main() {
   const auth = new google.auth.GoogleAuth({
-    keyFile: "./credentials.json",
+    keyFile: "/home/yvrlinli/businessKPI/credentials.json",
     scopes: "https://www.googleapis.com/auth/spreadsheets",
   });
 
